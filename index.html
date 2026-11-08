@@ -149,12 +149,11 @@ body{margin:0;background:radial-gradient(ellipse at top,#0d0d12 0%,var(--bg) 60%
     <div class="note">On iPhone, tap Download then save to Files/Photos from the share sheet.</div>
   </div>
 
-  <div class="ver">v1.1 Web · Mobile Fix</div>
+  <div class="ver">v1.0 Web</div>
   <div class="copy">Copyright by Picco Method</div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+<script src="ffmpeg.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const SCALE = 2;
@@ -202,66 +201,36 @@ function selectFile(file){
 }
 function clearFile(){ currentFile=null; currentDuration=null; $("file").value=""; $("chip").classList.remove("show"); $("run").disabled=true; }
 
+const ENGINE_FILES = ["ffmpeg.js", "814.ffmpeg.js", "ffmpeg-core.js", "ffmpeg-core.wasm"];
+async function missingFile(){
+  for (const f of ENGINE_FILES){
+    try{ const r = await fetch(f, { method:"HEAD" }); if(!r.ok) return f; }
+    catch(e){ return f; }
+  }
+  return null;
+}
+
 async function ensureLoaded(){
   if (loaded) return;
-  if (!window.FFmpegWASM || !window.FFmpegUtil) {
-    throw new Error("FFmpeg library failed to load. Refresh the page and check your internet connection.");
+  const missing = await missingFile();
+  if (missing || typeof FFmpegWASM === "undefined") {
+    throw new Error(
+      "Engine files are missing or not loaded" + (missing ? " (" + missing + ")" : "") + ".\n" +
+      "Make sure ffmpeg.js, 814.ffmpeg.js, ffmpeg-core.js and ffmpeg-core.wasm are uploaded in the same folder as this page."
+    );
   }
-  if (!("Worker" in window) || !("WebAssembly" in window) || !URL.createObjectURL) {
-    throw new Error("This browser does not support the local video processor. Please use an updated Safari or Chrome.");
-  }
-
-  const { fetchFile, toBlobURL } = FFmpegUtil;
-  const coreBase = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm";
-  const workerURL = "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js";
-  const withTimeout = (p, ms, label) => {
-    let timer;
-    return Promise.race([
-      p,
-      new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error(
-          label + " took too long. Check your connection, then reload the page and try again."
-        )), ms);
-      })
-    ]).finally(() => clearTimeout(timer));
-  };
-
   ffmpeg = new FFmpegWASM.FFmpeg();
-  ffmpeg.on("progress", ({ progress }) => {
-    if (isFinite(progress)) setProgress(progress * 100);
-  });
-
-  try {
-    const classWorkerURL = await withTimeout(
-      toBlobURL(workerURL, "text/javascript"),
-      30000,
-      "Loading the FFmpeg worker"
-    );
-    const coreURL = await withTimeout(
-      toBlobURL(`${coreBase}/ffmpeg-core.js`, "text/javascript"),
-      30000,
-      "Loading the FFmpeg core"
-    );
-    const wasmURL = await withTimeout(
-      toBlobURL(`${coreBase}/ffmpeg-core.wasm`, "application/wasm"),
-      45000,
-      "Loading the video engine"
-    );
-
-    await withTimeout(ffmpeg.load({
-      classWorkerURL,
-      coreURL,
-      wasmURL
-    }), 90000, "Starting the video engine");
-
-    window.__fetchFile = fetchFile;
-    loaded = true;
-  } catch (error) {
-    try { ffmpeg.terminate(); } catch (_) {}
-    ffmpeg = null;
-    loaded = false;
-    throw error;
-  }
+  ffmpeg.on("progress", ({ progress }) => { if (isFinite(progress)) setProgress(progress*100); });
+  const withTimeout = (p, ms, label) => Promise.race([
+    p,
+    new Promise((_, rej) => setTimeout(() => rej(new Error(label + " took too long.")), ms))
+  ]);
+  await withTimeout(ffmpeg.load({
+    classWorkerURL: "814.ffmpeg.js",
+    coreURL: "ffmpeg-core.js",
+    wasmURL: "ffmpeg-core.wasm",
+  }), 60000, "Loading the engine");
+  loaded = true;
 }
 
 async function run(){
@@ -279,7 +248,7 @@ async function run(){
     const inName = "input."+ext, outName = "output."+ext;
 
     setStep("read");
-    await ffmpeg.writeFile(inName, await window.__fetchFile(currentFile));
+    await ffmpeg.writeFile(inName, new Uint8Array(await currentFile.arrayBuffer()));
 
     setStep("exec"); setProgress(0);
     const args = ["-itsscale", String(SCALE), "-i", inName, "-c:v", "copy"];
@@ -317,11 +286,7 @@ async function run(){
     $("resultBox").scrollIntoView({behavior:"smooth", block:"start"});
   }catch(e){
     $("progressBox").style.display="none";
-    let message = String(e && e.message ? e.message : e);
-    if (/memory|out of memory|allocation failed|abort\(/i.test(message)) {
-      message += "\\n\\nThis device may not have enough free memory for this video. Close other browser tabs/apps and try a shorter or smaller video.";
-    }
-    showError(message);
+    showError(String(e && e.message ? e.message : e));
   }finally{
     $("run").disabled = !currentFile;
   }
