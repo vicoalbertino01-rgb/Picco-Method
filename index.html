@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Picco Method</title>
+<style>
+:root{
+  --bg:#050507;--panel:#0a0a0c;--card:#0f0f12;--card-hover:#141418;--border:#25252b;--border-soft:#1b1b20;
+  --text:#f2f2f4;--muted:#8a8a94;--faint:#5c5c66;--accent:#f5f5f7;--ok:#34d399;--danger:#ff6b6b;
+  color-scheme:dark;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:radial-gradient(ellipse at top,#0d0d12 0%,var(--bg) 60%);color:var(--text);
+  font-family:-apple-system,"Segoe UI",system-ui,Roboto,sans-serif;line-height:1.4;position:relative;overflow-x:hidden}
+.panel{position:relative;z-index:1;width:100%;max-width:380px;margin:32px auto;padding:26px 20px 18px;
+  background:var(--panel);border:1px solid var(--border);border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.brand{text-align:center;margin:4px 0 24px;font-weight:800;font-size:20px;letter-spacing:.5px}
+.brand small{display:block;font-size:11px;font-weight:600;color:var(--faint);letter-spacing:2px;margin-top:4px}
+.acc,.toggle-card{background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:12px}
+.acc-head{width:100%;display:flex;align-items:center;gap:12px;padding:15px 16px;background:none;border:0;
+  color:var(--text);cursor:pointer;font-size:14px;font-weight:700;text-align:left}
+.acc-head .lead{color:var(--muted);display:grid;place-items:center}
+.acc-head .label{flex:1}
+.acc-head .chev{color:var(--muted);transition:transform .2s}
+.acc.open .chev{transform:rotate(180deg)}
+.acc.open .acc-head{border-bottom:1px solid var(--border-soft)}
+.acc-body{display:none;padding:16px 16px 18px}
+.acc.open .acc-body{display:block}
+.feat{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.feat li{display:flex;align-items:center;gap:12px;font-size:13.5px;font-weight:600;color:#d9d9de}
+.feat .cb{width:18px;height:18px;flex:none;border-radius:5px;border:1px solid #3a3a42;background:#17171c;
+  color:#9a9aa4;display:grid;place-items:center}
+.row{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:8px 0;border-top:1px solid var(--border-soft)}
+.row:first-child{border-top:0}
+.row .k{color:var(--muted)}
+.row .v{font-weight:600;text-align:right;word-break:break-all}
+.toggle-card{display:flex;align-items:center;gap:14px;padding:15px 16px}
+.toggle-card .lead{color:var(--muted);display:grid;place-items:center;width:20px}
+.toggle-card .txt{flex:1;min-width:0}
+.toggle-card .title{font-size:14px;font-weight:700}
+.toggle-card .desc{font-size:11.5px;color:var(--faint)}
+.switch{position:relative;width:46px;height:26px;flex:none}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch span{position:absolute;inset:0;border-radius:99px;background:#26262c;border:1px solid #33333a;cursor:pointer;transition:.2s}
+.switch span::after{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#8a8a94;transition:.2s}
+.switch input:checked+span{background:#3b3b44;border-color:#55555f}
+.switch input:checked+span::after{transform:translateX(20px);background:#fff}
+.big-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;margin-bottom:12px;
+  border-radius:16px;font-size:14.5px;font-weight:700;background:var(--card);color:var(--text);border:1px solid var(--border);
+  cursor:pointer;text-decoration:none;transition:.15s}
+.big-btn:hover:not(:disabled){border-color:#4a4a54;background:var(--card-hover)}
+.big-btn.solid{background:var(--accent);color:#0a0a0c;border-color:var(--accent)}
+.big-btn:disabled{opacity:.35;cursor:not-allowed}
+.chip{display:none;align-items:center;gap:12px;padding:12px 14px;margin-bottom:12px;border:1px solid var(--border);
+  border-radius:14px;background:var(--card)}
+.chip.show{display:flex}
+.chip .meta{flex:1;min-width:0}
+.chip .name{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .info{font-size:11.5px;color:var(--faint)}
+.chip button{background:none;border:0;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer}
+#errorBox{display:none;margin-bottom:12px;padding:12px 14px;border-radius:14px;border:1px solid #5a2626;
+  background:#1c0f0f;color:var(--danger);font-size:12.5px;white-space:pre-wrap}
+#progressBox{display:none;margin-bottom:12px;padding:16px;border:1px solid var(--border);border-radius:16px;background:var(--card)}
+#progressBox h3{margin:0 0 12px;font-size:14px}
+.bar{height:6px;border-radius:99px;background:#23232a;overflow:hidden;margin-bottom:14px}
+.bar>div{height:100%;width:0;background:#fff;border-radius:99px;transition:width .25s}
+.bar.indeterminate>div{width:40%;animation:slide 1.1s infinite ease-in-out}
+@keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.steps li{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--faint)}
+.steps .d{width:14px;height:14px;border-radius:50%;border:2px solid #33333a;flex:none}
+.steps li.active{color:var(--text);font-weight:700}
+.steps li.active .d{border-color:#fff}
+.steps li.done{color:var(--muted)}
+.steps li.done .d{border-color:var(--ok);background:var(--ok)}
+#resultBox{display:none;margin-bottom:12px;padding:16px;border:1px solid var(--border);border-radius:16px;background:var(--card)}
+.res-head{display:flex;align-items:center;gap:8px;color:var(--ok);font-weight:700;font-size:14px;margin-bottom:12px}
+#preview{width:100%;max-height:260px;border-radius:12px;background:#000;margin-bottom:12px}
+.res-rows{margin-bottom:14px}
+.note{font-size:11.5px;color:var(--faint);text-align:center;margin-top:10px;line-height:1.5}
+.ver{text-align:center;margin-top:20px;font-size:12px;font-weight:700;color:var(--faint)}
+.copy{text-align:center;margin-top:4px;font-size:11px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="brand">PICCO METHOD<small>WEB · WORKS ON IPHONE / SAFARI</small></div>
+
+  <div class="acc open" id="acc">
+    <button class="acc-head" id="accHead" type="button">
+      <span class="label">System Features</span>
+      <span class="chev">▾</span>
+    </button>
+    <div class="acc-body">
+      <ul class="feat">
+        <li><span class="cb">✓</span>High Quality Processing</li>
+        <li><span class="cb">✓</span>Full Original Video Resolution</li>
+        <li><span class="cb">✓</span>Lossless, No Re-encoding</li>
+        <li><span class="cb">✓</span>Optional Audio Control</li>
+        <li><span class="cb">✓</span>100% Local: No Upload, No Server</li>
+        <li><span class="cb">✓</span>Single File: Works Offline, iPhone &amp; PC</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="toggle-card">
+    <div class="txt"><div class="title">Include Audio</div><div class="desc">Turn off to remove audio from the result</div></div>
+    <label class="switch"><input type="checkbox" id="optAudio" checked><span></span></label>
+  </div>
+  <div class="toggle-card">
+    <div class="txt"><div class="title">Preview Result</div><div class="desc">Show the video player when finished</div></div>
+    <label class="switch"><input type="checkbox" id="optPreview" checked><span></span></label>
+  </div>
+
+  <button class="big-btn" id="pick" type="button">Select Video</button>
+  <input type="file" id="file" accept="video/*" hidden>
+
+  <div class="chip" id="chip">
+    <div class="meta"><div class="name" id="chipName"></div><div class="info" id="chipInfo"></div></div>
+    <button id="chipClear" type="button">Change</button>
+  </div>
+
+  <div id="errorBox"></div>
+  <button class="big-btn solid" id="run" type="button" disabled>Process Video</button>
+
+  <div id="progressBox">
+    <h3>Processing</h3>
+    <div class="bar indeterminate" id="bar"><div id="barFill"></div></div>
+    <ul class="steps" id="steps">
+      <li data-step="load"><span class="d"></span>Reading file structure</li>
+      <li data-step="read"><span class="d"></span>Adjusting timeline</li>
+      <li data-step="exec"><span class="d"></span>Applying Picco Method</li>
+      <li data-step="out"><span class="d"></span>Preparing result</li>
+    </ul>
+  </div>
+
+  <div id="resultBox">
+    <div class="res-head">✓ Video processed successfully</div>
+    <video id="preview" controls playsinline></video>
+    <div class="res-rows">
+      <div class="row"><span class="k">File name</span><span class="v" id="rName">-</span></div>
+      <div class="row"><span class="k">Duration</span><span class="v" id="rDur">-</span></div>
+      <div class="row"><span class="k">Size</span><span class="v" id="rSize">-</span></div>
+    </div>
+    <a class="big-btn solid" id="download" href="#" download>Download Video</a>
+    <button class="big-btn" id="share" type="button" style="display:none">Save / Share</button>
+    <button class="big-btn" id="again" type="button">Process Another Video</button>
+    <div class="note">On iPhone, tap Download then save to Files/Photos from the share sheet.</div>
+  </div>
+
+  <div class="ver">v1.0 Web</div>
+  <div class="copy">Copyright by Picco Method</div>
+</div>
+
+<script>
+// ==CORE==
+const SCALE = 2; // durasi x2 (kecepatan 0.5x). Timescale dibagi SCALE.
+
+function boxAt(dv, u8, p, end){
+  if (p + 8 > end) return null;
+  let size = dv.getUint32(p), hdr = 8;
+  const type = String.fromCharCode(u8[p+4], u8[p+5], u8[p+6], u8[p+7]);
+  if (size === 1){ if (p + 16 > end) return null; size = Number(dv.getBigUint64(p+8)); hdr = 16; }
+  else if (size === 0) size = end - p;
+  if (size < hdr || p + size > end) return null;
+  return { type, start: p, size, hdr };
+}
+function kids(dv, u8, start, end){
+  const out = []; let p = start, b;
+  while ((b = boxAt(dv, u8, p, end))) { out.push(b); p += b.size; }
+  return out;
+}
+function halveTimescale(dv, box){
+  // mvhd & mdhd: versi 0 -> timescale di +20, versi 1 -> +28 (dari awal box)
+  const ver = dv.getUint8(box.start + box.hdr);
+  const off = box.start + box.hdr + 4 + (ver === 1 ? 16 : 8);
+  const ts = dv.getUint32(off);
+  if (ts < SCALE || ts % SCALE !== 0) throw new Error("Unsupported timing format in this video (timescale " + ts + ").");
+  dv.setUint32(off, ts / SCALE);
+}
+// Ubah data moov di tempat (ukuran tetap), jadi offset mdat tidak berubah.
+function patchMoov(u8, keepAudio){
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  const moov = boxAt(dv, u8, 0, u8.byteLength);
+  if (!moov || moov.type !== "moov") throw new Error("Invalid movie header.");
+  let gotMvhd = false, tracks = 0, audioRemoved = 0;
+  for (const c of kids(dv, u8, moov.hdr, moov.size)){
+    if (c.type === "mvhd"){ halveTimescale(dv, c); gotMvhd = true; }
+    else if (c.type === "trak"){
+      const mdia = kids(dv, u8, c.start + c.hdr, c.start + c.size).find(x => x.type === "mdia");
+      if (!mdia) continue;
+      const m = kids(dv, u8, mdia.start + mdia.hdr, mdia.start + mdia.size);
+      const mdhd = m.find(x => x.type === "mdhd"), hdlr = m.find(x => x.type === "hdlr");
+      if (!mdhd) continue;
+      let isAudio = false;
+      if (hdlr){
+        const o = hdlr.start + hdlr.hdr + 8;
+        isAudio = String.fromCharCode(u8[o], u8[o+1], u8[o+2], u8[o+3]) === "soun";
+      }
+      if (isAudio && !keepAudio){
+        // ganti nama box jadi "free" -> pemutar mengabaikan track ini
+        u8[c.start+4]=0x66; u8[c.start+5]=0x72; u8[c.start+6]=0x65; u8[c.start+7]=0x65;
+        audioRemoved++; continue;
+      }
+      halveTimescale(dv, mdhd); tracks++;
+    }
+  }
+  if (!gotMvhd || !tracks) throw new Error("No playable tracks found.");
+  return { tracks, audioRemoved };
+}
+async function processFile(file, keepAudio){
+  // cari box 'moov' di level atas (hanya baca header kecil, bukan seluruh file)
+  let pos = 0, moov = null;
+  while (pos + 8 <= file.size){
+    const buf = await file.slice(pos, pos + 16).arrayBuffer();
+    const u8 = new Uint8Array(buf), dv = new DataView(buf);
+    let size = dv.getUint32(0), hdr = 8;
+    const type = String.fromCharCode(u8[4], u8[5], u8[6], u8[7]);
+    if (size === 1){ if (buf.byteLength < 16) break; size = Number(dv.getBigUint64(8)); hdr = 16; }
+    else if (size === 0) size = file.size - pos;
+    if (size < hdr) break;
+    if (type === "moov"){ moov = { start: pos, size }; break; }
+    pos += size;
+  }
+  if (!moov) throw new Error("This file is not a supported MP4 / MOV video (iPhone videos are fine).");
+  if (moov.size > 256 * 1024 * 1024) throw new Error("Video header is too large.");
+  const moovBytes = new Uint8Array(await file.slice(moov.start, moov.start + moov.size).arrayBuffer());
+  const info = patchMoov(moovBytes, keepAudio);
+  // Blob disusun dari potongan file asli: isi video tidak disalin ke memori.
+  const blob = new Blob([
+    file.slice(0, moov.start), moovBytes, file.slice(moov.start + moov.size)
+  ], { type: file.type || "video/mp4" });
+  return { blob, info };
+}
+// ==/CORE==
+
+const $ = (id) => document.getElementById(id);
+let resultBlob = null, resultName = "", currentFile = null, currentDuration = null, resultUrl = null;
+
+function fmtSize(b){ if(b>=1073741824) return (b/1073741824).toFixed(2)+" GB"; if(b>=1048576) return (b/1048576).toFixed(1)+" MB"; return Math.max(1,Math.round(b/1024))+" KB"; }
+function fmtTime(sec){ if(!isFinite(sec)) return "-"; sec=Math.round(sec); const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60; const p=(n)=>String(n).padStart(2,"0"); return h>0? h+":"+p(m)+":"+p(s) : m+":"+p(s); }
+function showError(msg){ const box=$("errorBox"); box.textContent=msg; box.style.display = msg ? "block" : "none"; }
+const tick = () => new Promise((r) => setTimeout(r, 60));
+
+$("accHead").addEventListener("click", () => $("acc").classList.toggle("open"));
+
+const STEP_ORDER = ["load","read","exec","out"];
+function setStep(name){
+  const idx = STEP_ORDER.indexOf(name);
+  document.querySelectorAll("#steps li").forEach((li) => {
+    const i = STEP_ORDER.indexOf(li.dataset.step);
+    li.classList.toggle("done", i < idx || name === "done");
+    li.classList.toggle("active", i === idx);
+  });
+  const bar = $("bar");
+  if (name === "done") { bar.classList.remove("indeterminate"); $("barFill").style.width = "100%"; }
+  else { bar.classList.add("indeterminate"); $("barFill").style.width = ""; }
+}
+
+function selectFile(file){
+  showError("");
+  if (!file) return;
+  currentFile = file; currentDuration = null;
+  $("chipName").textContent = file.name;
+  $("chipInfo").textContent = fmtSize(file.size);
+  $("chip").classList.add("show");
+  $("run").disabled = false;
+  $("resultBox").style.display = "none";
+  const probe = document.createElement("video");
+  probe.preload = "metadata";
+  const url = URL.createObjectURL(file);
+  probe.onloadedmetadata = () => {
+    if (isFinite(probe.duration)) { currentDuration = probe.duration; $("chipInfo").textContent = fmtSize(file.size)+" · "+fmtTime(probe.duration); }
+    URL.revokeObjectURL(url);
+  };
+  probe.onerror = () => URL.revokeObjectURL(url);
+  probe.src = url;
+}
+function clearFile(){ currentFile=null; currentDuration=null; $("file").value=""; $("chip").classList.remove("show"); $("run").disabled=true; }
+
+async function run(){
+  showError("");
+  if (!currentFile) { showError("Please select a video file first."); return; }
+  $("run").disabled = true; $("resultBox").style.display="none"; $("progressBox").style.display="block";
+  $("progressBox").scrollIntoView({behavior:"smooth", block:"center"});
+  try{
+    setStep("load"); await tick();
+    setStep("read"); await tick();
+    setStep("exec");
+    const { blob } = await processFile(currentFile, $("optAudio").checked);
+    setStep("out"); await tick();
+
+    const name = currentFile.name;
+    const dot = name.lastIndexOf(".");
+    const ext = dot>=0 ? name.slice(dot+1) : "mp4";
+    const base = dot>=0 ? name.slice(0,dot) : name;
+    const outFile = base+"_picco."+ext;
+
+    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    resultUrl = URL.createObjectURL(blob);
+    resultBlob = blob; resultName = outFile;
+
+    const preview = $("preview");
+    preview.style.display = $("optPreview").checked ? "block" : "none";
+    preview.onloadedmetadata = () => {
+      const dNew = isFinite(preview.duration) ? preview.duration : null;
+      $("rDur").textContent = (currentDuration?fmtTime(currentDuration):"-") + " → " + (dNew?fmtTime(dNew):"-");
+    };
+    preview.src = resultUrl;
+    $("rName").textContent = outFile;
+    $("rSize").textContent = fmtSize(blob.size);
+    $("rDur").textContent = "-";
+    const dl = $("download"); dl.href = resultUrl; dl.download = outFile;
+
+    // Tombol Save/Share (iPhone: bisa langsung simpan ke Photos/Files)
+    let canShare = false;
+    try{
+      const f = new File([blob], outFile, { type: blob.type });
+      canShare = !!(navigator.canShare && navigator.canShare({ files: [f] }));
+    }catch(e){}
+    $("share").style.display = canShare ? "flex" : "none";
+
+    setStep("done");
+    $("progressBox").style.display="none"; $("resultBox").style.display="block";
+    $("resultBox").scrollIntoView({behavior:"smooth", block:"start"});
+  }catch(e){
+    $("progressBox").style.display="none";
+    showError(String(e && e.message ? e.message : e));
+  }finally{
+    $("run").disabled = !currentFile;
+  }
+}
+
+$("pick").addEventListener("click", () => $("file").click());
+$("file").addEventListener("change", (e) => selectFile(e.target.files[0]));
+$("chipClear").addEventListener("click", clearFile);
+$("run").addEventListener("click", run);
+$("share").addEventListener("click", async () => {
+  if (!resultBlob) return;
+  try{ await navigator.share({ files: [new File([resultBlob], resultName, { type: resultBlob.type })] }); }
+  catch(e){ if (e && e.name !== "AbortError") showError("Share failed. Use Download Video instead."); }
+});
+$("again").addEventListener("click", () => { $("resultBox").style.display="none"; clearFile(); window.scrollTo({top:0, behavior:"smooth"}); });
+</script>
+</body>
+</html>
